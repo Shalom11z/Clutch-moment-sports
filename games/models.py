@@ -16,5 +16,5 @@ class Game(models.Model):
     home_penalties = models.IntegerField(null=True, blank=True)
     away_penalties = models.IntegerField(null=True, blank=True)
 
-    minute = models.IntegerField(default=0)
+    minute = models.CharField(max_length=20, default="0'")
     status = models.CharField(max_length=20)
