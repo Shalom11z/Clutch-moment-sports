@@ -1,11 +1,13 @@
+import os
 from django.core.management.base import BaseCommand
 import requests
-
 from games.models import Game
 
 ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports"
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
-
+def send_discord_notifications(message):
+    requests.post(DISCORD_WEBHOOK_URL, json={"content": message})
 class Command(BaseCommand):
     help = "Poll ESPN scoreboards and upsert Game rows."
 
@@ -27,7 +29,7 @@ class Command(BaseCommand):
                     away_team = competitor["team"]["name"]
                     away_score = int(competitor["score"])
 
-            Game.objects.update_or_create(
+            game, created = Game.objects.update_or_create(
                 espn_id=event["id"],
                 defaults={
                     "round_name": event["season"]["slug"],
@@ -39,5 +41,11 @@ class Command(BaseCommand):
                     "minute": status["displayClock"],
                 }
             )
+            is_clutch, reason = game.is_clutch()
+
+            if is_clutch and not game.notified_clutch:
+                send_discord_notifications(f"{game} - {reason}")
+                game.notified_clutch = True
+                game.save()
 
         self.stdout.write(self.style.SUCCESS("Updated games"))

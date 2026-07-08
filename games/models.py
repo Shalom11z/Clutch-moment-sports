@@ -19,6 +19,8 @@ class Game(models.Model):
     minute = models.CharField(max_length=20, default="0'")
     status = models.CharField(max_length=20)
 
+    notified_clutch = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.away_team} @ {self.home_team} ({self.away_score}-{self.home_score})"
 
