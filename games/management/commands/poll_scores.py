@@ -21,13 +21,20 @@ class Command(BaseCommand):
             status = competition["status"]
             competitors = competition["competitors"]
 
+            home_penalties = None
+            away_penalties = None
+
             for competitor in competitors:
                 if competitor["homeAway"] == "home":
                     home_team = competitor["team"]["name"]
                     home_score = int(competitor["score"])
+                    if "shootoutScore" in competitor:
+                        home_penalties = int(competitor["shootoutScore"])
                 elif competitor["homeAway"] == "away":
                     away_team = competitor["team"]["name"]
                     away_score = int(competitor["score"])
+                    if "shootoutScore" in competitor:
+                        away_penalties = int(competitor["shootoutScore"])
 
             game, created = Game.objects.update_or_create(
                 espn_id=event["id"],
@@ -40,6 +47,8 @@ class Command(BaseCommand):
                     "status": status["type"]["state"],
                     "minute": status["displayClock"],
                     "went_to_extra_time": status.get("period", 0) >= 3,
+                    "home_penalties": home_penalties,
+                    "away_penalties": away_penalties,
                 }
             )
             is_clutch, reason = game.is_clutch()
