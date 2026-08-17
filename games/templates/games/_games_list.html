@@ -1,0 +1,18 @@
+{% for game in games %}
+<div class="game{% if game.is_clutch.0 %} clutch{% endif %}">
+    <div class="teams">
+        <span class="team">{{ game.away_team }}</span>
+        <span class="score">{{ game.away_score }} &ndash; {{ game.home_score }}</span>
+        <span class="team">{{ game.home_team }}</span>
+    </div>
+    <div class="meta">
+        <span class="status status-{{ game.status }}">
+            {% if game.status == "in" %}{{ game.minute }}{% elif game.status == "post" %}Final{% else %}Scheduled{% endif %}
+        </span>
+        <span class="round">{{ game.round_name }}</span>
+        {% if game.is_clutch.0 %}<span class="clutch-badge">🔥 {{ game.is_clutch.1 }}</span>{% endif %}
+    </div>
+</div>
+{% empty %}
+<p class="empty">No games found. Run <code>python manage.py poll_scores</code> to fetch data.</p>
+{% endfor %}

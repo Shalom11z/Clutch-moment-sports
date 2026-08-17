@@ -39,6 +39,7 @@ class Command(BaseCommand):
                     "away_score": away_score,
                     "status": status["type"]["state"],
                     "minute": status["displayClock"],
+                    "went_to_extra_time": status.get("period", 0) >= 3,
                 }
             )
             is_clutch, reason = game.is_clutch()
