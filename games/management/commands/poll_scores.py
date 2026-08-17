@@ -12,7 +12,7 @@ class Command(BaseCommand):
     help = "Poll ESPN scoreboards and upsert Game rows."
 
     def handle(self, *args, **options):
-        url = f"{ESPN_BASE}/soccer/fifa.world/scoreboard"
+        url = f"{ESPN_BASE}/soccer/eng.1/scoreboard"
         response = requests.get(url)
         data = response.json()
 
