@@ -52,3 +52,32 @@ Set `DISCORD_WEBHOOK_URL` in the environment to enable clutch notifications.
 
 To poll a different competition, change the ESPN slug in `poll_scores.py`
 (e.g. `fifa.world` for the World Cup, `eng.1` for the Premier League, `uefa.champions` for the Champions League).
+
+## Deploying (Render)
+
+`render.yaml` defines a Render Blueprint with three pieces, so the site and
+poller keep running without your laptop:
+
+- **web** — `gunicorn`-served dashboard (free plan; sleeps after 15 min of
+  no traffic and wakes on the next request).
+- **poller** — a background worker running `poll_scores --loop --interval
+  60` continuously (`starter` plan — Render's free tier doesn't run
+  always-on workers, so this incurs a small monthly cost).
+- **db** — a managed Postgres database shared by both.
+
+Steps:
+
+1. Push this repo to GitHub (already done if you're reading this from the
+   remote).
+2. In the [Render dashboard](https://dashboard.render.com), click
+   **New > Blueprint** and connect this repo. Render will read `render.yaml`
+   and create the db, web service, and worker.
+3. Set the `DISCORD_WEBHOOK_URL` env var (marked `sync: false` in
+   `render.yaml`, so Render won't auto-fill it) on **both** the web and
+   worker services, in their dashboard's Environment tab.
+4. Deploy. `SECRET_KEY` is auto-generated per service and `DATABASE_URL` is
+   wired to the Postgres instance automatically.
+
+Local development is unaffected: without a `DATABASE_URL` env var it still
+falls back to `db.sqlite3`, and without `DEBUG=False` set it still runs in
+debug mode.
