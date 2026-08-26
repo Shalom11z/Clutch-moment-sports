@@ -1,18 +1,35 @@
-{% for game in games %}
-<div class="game{% if game.is_clutch.0 %} clutch{% endif %}">
-    <div class="teams">
-        <span class="team">{{ game.away_team }}</span>
-        <span class="score">{{ game.away_score }} &ndash; {{ game.home_score }}</span>
-        <span class="team">{{ game.home_team }}</span>
+{% regroup games by status as status_groups %}
+{% for group in status_groups %}
+<section class="status-group">
+    <h2 class="group-title">
+        {% if group.grouper == "in" %}<span class="live-dot"></span>Live Now
+        {% elif group.grouper == "pre" %}Upcoming
+        {% elif group.grouper == "post" %}Final
+        {% else %}{{ group.grouper|title }}{% endif %}
+    </h2>
+    <div class="games-grid">
+        {% for game in group.list %}
+        <div class="game{% if game.is_clutch.0 %} clutch{% endif %}">
+            {% if game.is_clutch.0 %}<span class="clutch-badge">🔥 {{ game.is_clutch.1 }}</span>{% endif %}
+            <div class="teams">
+                <span class="team">{{ game.away_team }}</span>
+                <span class="score">{{ game.away_score }} &ndash; {{ game.home_score }}</span>
+                <span class="team">{{ game.home_team }}</span>
+            </div>
+            {% if game.home_penalties != None and game.away_penalties != None %}
+            <div class="penalties">Pens: {{ game.away_penalties }} &ndash; {{ game.home_penalties }}</div>
+            {% endif %}
+            <div class="meta">
+                <span class="status status-{{ game.status }}">
+                    {% if game.status == "in" %}{{ game.minute }}{% elif game.status == "post" %}Final{% else %}Scheduled{% endif %}
+                </span>
+                {% if game.went_to_extra_time %}<span class="et-badge">ET</span>{% endif %}
+                <span class="round">{{ game.round_name }}</span>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    <div class="meta">
-        <span class="status status-{{ game.status }}">
-            {% if game.status == "in" %}{{ game.minute }}{% elif game.status == "post" %}Final{% else %}Scheduled{% endif %}
-        </span>
-        <span class="round">{{ game.round_name }}</span>
-        {% if game.is_clutch.0 %}<span class="clutch-badge">🔥 {{ game.is_clutch.1 }}</span>{% endif %}
-    </div>
-</div>
+</section>
 {% empty %}
 <p class="empty">No games found. Run <code>python manage.py poll_scores</code> to fetch data.</p>
 {% endfor %}
