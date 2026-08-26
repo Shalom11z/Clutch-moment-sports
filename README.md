@@ -36,8 +36,16 @@ switching competitions is a one-line change to the ESPN endpoint in
 
 ```bash
 python manage.py migrate
-python manage.py poll_scores   # fetch current scoreboard
+python manage.py poll_scores   # fetch current scoreboard once
 python manage.py runserver
+```
+
+To keep scores updating automatically, run `poll_scores` with `--loop` in a
+long-running process (e.g. a second terminal, or a background service) instead
+of calling it once:
+
+```bash
+python manage.py poll_scores --loop --interval 60   # poll every 60s, forever
 ```
 
 Set `DISCORD_WEBHOOK_URL` in the environment to enable clutch notifications.

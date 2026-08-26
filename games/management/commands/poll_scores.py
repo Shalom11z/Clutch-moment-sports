@@ -1,4 +1,6 @@
 import os
+import time
+
 from django.core.management.base import BaseCommand
 import requests
 from games.models import Game
@@ -11,7 +13,29 @@ def send_discord_notifications(message):
 class Command(BaseCommand):
     help = "Poll ESPN scoreboards and upsert Game rows."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--loop",
+            action="store_true",
+            help="Keep polling forever instead of exiting after one poll.",
+        )
+        parser.add_argument(
+            "--interval",
+            type=int,
+            default=60,
+            help="Seconds to wait between polls when --loop is set (default: 60).",
+        )
+
     def handle(self, *args, **options):
+        if options["loop"]:
+            interval = options["interval"]
+            while True:
+                self.poll_once()
+                time.sleep(interval)
+        else:
+            self.poll_once()
+
+    def poll_once(self):
         url = f"{ESPN_BASE}/soccer/eng.1/scoreboard"
         response = requests.get(url)
         data = response.json()

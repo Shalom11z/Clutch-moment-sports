@@ -1,9 +1,11 @@
 from unittest.mock import patch, Mock
 
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
 from .models import Game
+from .management.commands.poll_scores import Command as PollScoresCommand
 
 
 def make_game(**overrides):
@@ -124,7 +126,6 @@ class PollScoresTests(TestCase):
     def test_creates_game_from_espn_event(self, mock_get, mock_post):
         mock_get.return_value = make_espn_response([make_espn_event()])
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         game = Game.objects.get(espn_id="100")
@@ -141,7 +142,6 @@ class PollScoresTests(TestCase):
             [make_espn_event(event_id="100", home_score="2", away_score="1")]
         )
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         game = Game.objects.get(espn_id="100")
@@ -153,7 +153,6 @@ class PollScoresTests(TestCase):
             [make_espn_event(period=4, home_penalties=5, away_penalties=4)]
         )
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         game = Game.objects.get(espn_id="100")
@@ -166,7 +165,6 @@ class PollScoresTests(TestCase):
             [make_espn_event(display_clock="85'", home_score="1", away_score="2")]
         )
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         mock_post.assert_called_once()
@@ -185,7 +183,6 @@ class PollScoresTests(TestCase):
             [make_espn_event(display_clock="86'", home_score="1", away_score="2")]
         )
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         mock_post.assert_not_called()
@@ -195,9 +192,35 @@ class PollScoresTests(TestCase):
             [make_espn_event(display_clock="10'", home_score="0", away_score="0")]
         )
 
-        from django.core.management import call_command
         call_command("poll_scores")
 
         mock_post.assert_not_called()
         game = Game.objects.get(espn_id="100")
         self.assertFalse(game.notified_clutch)
+
+
+class PollScoresLoopTests(TestCase):
+    @patch("games.management.commands.poll_scores.time.sleep")
+    def test_loop_polls_repeatedly_at_given_interval(self, mock_sleep):
+        call_count = {"n": 0}
+
+        def fake_poll_once(self):
+            call_count["n"] += 1
+            if call_count["n"] >= 3:
+                raise KeyboardInterrupt()
+
+        with patch.object(PollScoresCommand, "poll_once", fake_poll_once):
+            with self.assertRaises(KeyboardInterrupt):
+                call_command("poll_scores", loop=True, interval=5)
+
+        self.assertEqual(call_count["n"], 3)
+        mock_sleep.assert_called_with(5)
+
+    @patch("games.management.commands.poll_scores.requests.post")
+    @patch("games.management.commands.poll_scores.requests.get")
+    def test_without_loop_polls_exactly_once(self, mock_get, mock_post):
+        mock_get.return_value = make_espn_response([make_espn_event()])
+
+        call_command("poll_scores")
+
+        self.assertEqual(mock_get.call_count, 1)
